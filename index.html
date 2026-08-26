@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Beauty & Wellness — Analytics Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --cream:#FBF7F5;
+    --panel:#FFFFFF;
+    --ink:#241C22;
+    --ink-soft:#6b5c66;
+    --rose:#9B2F5C;
+    --rose-dark:#5C1A38;
+    --blush:#F3DCE6;
+    --blush-soft:#FBF0F5;
+    --gold:#B98A3D;
+    --gold-soft:#F1E4CC;
+    --line:#E9DEE3;
+    --good:#3E7C59;
+    --bad:#B4442E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;}
+  .wrap{max-width:1300px;margin:0 auto;padding:28px 32px 40px;}
+
+  /* header */
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--rose-dark);padding-bottom:16px;margin-bottom:20px;}
+  .brand-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose);margin:0 0 4px;}
+  .brand-title{font-family:'Playfair Display',serif;font-weight:800;font-size:30px;margin:0;color:var(--rose-dark);letter-spacing:-.01em;}
+  .brand-sub{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .asof{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .asof b{color:var(--rose-dark);}
+
+  /* filter rail */
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px;}
+  .filters .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-right:6px;font-weight:600;}
+  .chip{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease;}
+  .chip:hover{border-color:var(--rose);}
+  .chip.active{background:var(--rose-dark);border-color:var(--rose-dark);color:#fff;}
+
+  /* kpi row */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--rose);}
+  .kpi .klabel{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);font-weight:600;margin-bottom:6px;}
+  .kpi .kval{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--rose-dark);line-height:1;}
+  .kpi .kdelta{font-size:12px;margin-top:6px;font-weight:600;}
+  .kpi .kdelta.up{color:var(--good);}
+  .kpi .kdelta.down{color:var(--bad);}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;}
+  .panel h3{font-family:'Playfair Display',serif;font-size:16px;margin:0 0 2px;color:var(--rose-dark);}
+  .panel .phint{font-size:11.5px;color:var(--ink-soft);margin-bottom:12px;}
+  .chart-box{position:relative;height:230px;}
+  .chart-box.tall{height:260px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+
+  /* scenario simulator */
+  .sim{background:linear-gradient(135deg,var(--rose-dark),var(--rose));border-radius:12px;padding:22px 26px;color:#fff;}
+  .sim h3{font-family:'Playfair Display',serif;font-size:18px;margin:0 0 2px;color:#fff;}
+  .sim .phint{color:#f3d9e6;margin-bottom:16px;}
+  .sim-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:22px;align-items:center;}
+  .slider-block label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:#f3d9e6;font-weight:600;margin-bottom:8px;}
+  .slider-block .sval{font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;}
+  input[type=range]{width:100%;accent-color:#fff;}
+  .sim-out{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:12px 14px;text-align:center;}
+  .sim-out .olabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#f3d9e6;margin-bottom:6px;}
+  .sim-out .oval{font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;}
+  .sim-out .oscn{font-size:11px;margin-top:4px;color:#f3d9e6;}
+
+  .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:2px 8px;border-radius:5px;background:var(--gold-soft);color:#7a5a1f;font-weight:700;margin-left:8px;}
+
+  footer{margin-top:18px;text-align:center;font-size:11px;color:var(--ink-soft);}
+
+  @media (max-width:1000px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .grid,.row2{grid-template-columns:1fr;}
+    .sim-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <p class="brand-eyebrow">Power BI &middot; Advanced Analytics</p>
+      <h1 class="brand-title">Beauty &amp; Wellness Performance Dashboard</h1>
+      <div class="brand-sub">Category performance &middot; retention &middot; promotion efficiency &middot; Q4 scenario simulator</div>
+    </div>
+    <div class="asof">Data as of <b>25 Aug 2026</b><br>Model: Hypothetical / illustrative<br>Refresh: Monthly</div>
+  </div>
+
+  <div class="filters">
+    <span class="flabel">Category</span>
+    <button class="chip active" data-cat="All">All</button>
+    <button class="chip" data-cat="Skincare">Skincare</button>
+    <button class="chip" data-cat="Wellness Devices">Wellness Devices</button>
+    <button class="chip" data-cat="Haircare">Haircare</button>
+    <button class="chip" data-cat="Color Cosmetics">Color Cosmetics</button>
+    <button class="chip" data-cat="Fragrance">Fragrance</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="klabel">Net Revenue (₹ Cr)</div><div class="kval" id="kpiRevenue">575.9</div><div class="kdelta up" id="kpiRevenueDelta">▲ 12.4% YoY</div></div>
+    <div class="kpi"><div class="klabel">Repeat Purchase Rate</div><div class="kval" id="kpiRepeat">27.8%</div><div class="kdelta up">▲ 3.1 pp YoY</div></div>
+    <div class="kpi"><div class="klabel">Avg Order Value</div><div class="kval" id="kpiAov">₹2,140</div><div class="kdelta up" id="kpiAovDelta">▲ 6.2% YoY</div></div>
+    <div class="kpi"><div class="klabel">Promo Lift</div><div class="kval">27%</div><div class="kdelta down">35% pulled-forward</div></div>
+    <div class="kpi"><div class="klabel">Demand Volatility (CoV)</div><div class="kval" id="kpiCov">0.19</div><div class="kdelta down" id="kpiCovNote">watch: Devices 0.34</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>Revenue by Subcategory — FY25 vs FY26<span class="badge">DAX: Revenue YoY %</span></h3>
+      <div class="phint">Click a category chip above to isolate a line; matrix responds to the same filter context.</div>
+      <div class="chart-box"><canvas id="revChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Customer Segment Mix<span class="badge">Calc. Column</span></h3>
+      <div class="phint">Tenure-based segmentation: New / Developing / Established / Loyal</div>
+      <div class="chart-box"><canvas id="segChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="panel">
+      <h3>Channel Contribution Margin</h3>
+      <div class="phint">Margin % after promotions and returns, by channel</div>
+      <div class="chart-box"><canvas id="chChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Demand Volatility by Subcategory<span class="badge">STDEVX.P / CoV</span></h3>
+      <div class="phint">Coefficient of variation — higher bars = lumpier, launch-driven demand</div>
+      <div class="chart-box"><canvas id="covChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sim">
+    <h3>Q4 Scenario Simulator <span style="font-weight:400;font-size:13px;">— What-If Parameters</span></h3>
+    <div class="phint">Drag to recompute <em>Scenario Revenue</em> &amp; <em>Scenario Margin %</em> live — mirrors the Power BI What-If parameter slicer.</div>
+    <div class="sim-grid">
+      <div>
+        <div class="slider-block">
+          <label>AOV Uplift % — <span class="sval" id="aovVal">0%</span></label>
+          <input type="range" id="aovSlider" min="-10" max="20" value="0" step="1">
+        </div>
+        <div class="slider-block" style="margin-top:14px;">
+          <label>Conversion Δ (pp) — <span class="sval" id="convVal">0.0</span></label>
+          <input type="range" id="convSlider" min="-2" max="3" value="0" step="0.5">
+        </div>
+        <div class="slider-block" style="margin-top:14px;">
+          <label>COGS Inflation % — <span class="sval" id="cogsVal">3%</span></label>
+          <input type="range" id="cogsSlider" min="0" max="15" value="3" step="1">
+        </div>
+      </div>
+      <div class="sim-out"><div class="olabel">Scenario Revenue</div><div class="oval" id="outRevenue">₹96.0 Cr</div><div class="oscn" id="outRevenueDelta">vs. ₹96.0 Cr base</div></div>
+      <div class="sim-out"><div class="olabel">Scenario Margin %</div><div class="oval" id="outMargin">38.6%</div><div class="oscn" id="outMarginDelta">vs. 38.6% base</div></div>
+      <div class="sim-out"><div class="olabel">Scenario Read</div><div class="oval" id="outLabel" style="font-size:16px;">Base Case</div><div class="oscn">auto-classified</div></div>
+    </div>
+  </div>
+
+  <footer>Illustrative Power BI-style dashboard built on hypothetical Beauty &amp; Wellness data — companion to the "Advanced Analytics in Power BI" report. Filters, chips, and the scenario simulator are fully interactive.</footer>
+</div>
+
+<script>
+const ROSE = '#9B2F5C', ROSE_DARK = '#5C1A38', GOLD = '#B98A3D', BLUSH='#F3DCE6', SOFT='#D98FB0';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#6b5c66';
+
+const categories = ['Skincare','Wellness Devices','Haircare','Color Cosmetics','Fragrance'];
+const fy25 = [184.2, 62.5, 121.7, 138.4, 68.9];
+const fy26 = [221.6, 84.9, 132.9, 141.0, 72.6];
+const cov  = [0.16, 0.34, 0.14, 0.11, 0.18];
+
+// Revenue chart
+const revChart = new Chart(document.getElementById('revChart'), {
+  type: 'bar',
+  data: {
+    labels: categories,
+    datasets: [
+      { label: 'FY25', data: fy25, backgroundColor: BLUSH, borderRadius: 4, barPercentage:.6 },
+      { label: 'FY26', data: fy26, backgroundColor: ROSE, borderRadius: 4, barPercentage:.6 }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom', labels:{boxWidth:10,usePointStyle:true}}},
+    scales:{ y:{ grid:{color:'#EFE4E9'}, title:{display:true,text:'₹ Cr'} }, x:{ grid:{display:false} } }
+  }
+});
+
+// Segment mix
+const segChart = new Chart(document.getElementById('segChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Loyal','Established','Developing','New'],
+    datasets: [{ data: [22, 27, 31, 20], backgroundColor: [ROSE_DARK, ROSE, GOLD, BLUSH], borderWidth:2, borderColor:'#fff' }]
+  },
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{boxWidth:10,usePointStyle:true, font:{size:11}}}} }
+});
+
+// Channel margin
+const chChart = new Chart(document.getElementById('chChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Owned E-com','Specialty Retail','Mass Retail','Marketplace'],
+    datasets: [{ data:[41.2, 37.5, 28.4, 22.9], backgroundColor:[ROSE_DARK, ROSE, GOLD, SOFT], borderRadius:5 }]
+  },
+  options: {
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{ x:{ grid:{color:'#EFE4E9'}, title:{display:true,text:'Margin %'} }, y:{ grid:{display:false} } }
+  }
+});
+
+// CoV chart
+const covChart = new Chart(document.getElementById('covChart'), {
+  type: 'bar',
+  data: { labels: categories, datasets:[{ data: cov, backgroundColor: cov.map(v=>v>0.25?'#B4442E':GOLD), borderRadius:5, barPercentage:.55 }] },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{ y:{ grid:{color:'#EFE4E9'}, title:{display:true,text:'Coefficient of Variation'} }, x:{ grid:{display:false} } }
+  }
+});
+
+// ---- category filter chips ----
+const chips = document.querySelectorAll('.chip');
+chips.forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    chips.forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    const cat = chip.dataset.cat;
+    if(cat==='All'){
+      revChart.data.datasets[0].data = fy25;
+      revChart.data.datasets[1].data = fy26;
+      document.getElementById('kpiRevenue').textContent = '575.9';
+      document.getElementById('kpiRevenueDelta').textContent = '▲ 12.4% YoY';
+    } else {
+      const idx = categories.indexOf(cat);
+      revChart.data.datasets[0].data = fy25.map((v,i)=> i===idx? v : null);
+      revChart.data.datasets[1].data = fy26.map((v,i)=> i===idx? v : null);
+      const growth = (((fy26[idx]-fy25[idx])/fy25[idx])*100).toFixed(1);
+      document.getElementById('kpiRevenue').textContent = fy26[idx].toFixed(1);
+      document.getElementById('kpiRevenueDelta').textContent = (growth>=0?'▲ ':'▼ ') + Math.abs(growth) + '% YoY';
+    }
+    revChart.update();
+  });
+});
+
+// ---- scenario simulator ----
+const baseRevenue = 96.0, baseMargin = 38.6, baseCost = baseRevenue*(1-baseMargin/100);
+const aovSlider = document.getElementById('aovSlider');
+const convSlider = document.getElementById('convSlider');
+const cogsSlider = document.getElementById('cogsSlider');
+
+function recompute(){
+  const aov = parseFloat(aovSlider.value)/100;
+  const convDelta = parseFloat(convSlider.value);
+  const cogsInf = parseFloat(cogsSlider.value)/100;
+
+  document.getElementById('aovVal').textContent = (aov*100).toFixed(0)+'%';
+  document.getElementById('convVal').textContent = convDelta.toFixed(1);
+  document.getElementById('cogsVal').textContent = (cogsInf*100).toFixed(0)+'%';
+
+  // simple model: orders respond to conversion delta relative to a 4.2% base conversion
+  const baseConv = 4.2;
+  const orderMultiplier = (baseConv + convDelta) / baseConv;
+  const scenarioRevenue = baseRevenue * (1+aov) * orderMultiplier;
+  const scenarioCost = baseCost * (1+cogsInf) * orderMultiplier;
+  const scenarioMargin = ((scenarioRevenue - scenarioCost) / scenarioRevenue) * 100;
+
+  document.getElementById('outRevenue').textContent = '₹' + scenarioRevenue.toFixed(1) + ' Cr';
+  document.getElementById('outMargin').textContent = scenarioMargin.toFixed(1) + '%';
+  const revDeltaPct = ((scenarioRevenue-baseRevenue)/baseRevenue*100).toFixed(1);
+  document.getElementById('outRevenueDelta').textContent = (revDeltaPct>=0?'+':'') + revDeltaPct + '% vs base';
+  document.getElementById('outMarginDelta').textContent = (scenarioMargin-baseMargin>=0?'+':'') + (scenarioMargin-baseMargin).toFixed(1) + ' pp vs base';
+
+  let label = 'Base Case';
+  if(scenarioRevenue > baseRevenue*1.1) label = 'Upside';
+  else if(scenarioRevenue < baseRevenue*0.92) label = 'Downside';
+  document.getElementById('outLabel').textContent = label;
+}
+[aovSlider,convSlider,cogsSlider].forEach(s=>s.addEventListener('input', recompute));
+recompute();
+</script>
+</body>
+</html>
